@@ -21,19 +21,20 @@
       justify-content: center;
     }
     
-    .container {
+    .main-container {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       border-radius: 20px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-      padding: 40px;
-      max-width: 650px;
+      max-width: 1200px;
       width: 100%;
       position: relative;
       overflow: hidden;
+      display: flex;
+      min-height: 600px;
     }
     
-    .container::before {
+    .main-container::before {
       content: '';
       position: absolute;
       top: 0;
@@ -41,6 +42,21 @@
       right: 0;
       height: 4px;
       background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+    
+    .input-section {
+      flex: 1;
+      padding: 40px;
+      border-right: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .result-section {
+      flex: 1;
+      padding: 40px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     
     h2 {
@@ -145,19 +161,30 @@
     }
     
     .result {
-      margin-top: 30px;
-      padding: 25px;
-      background: linear-gradient(135deg, #e8f5e8, #f0f8ff);
+      background: white;
       border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
       border-left: 5px solid #4caf50;
       opacity: 0;
       transform: translateY(20px);
       transition: all 0.5s ease;
+      margin-bottom: 20px;
     }
     
     .result.show {
       opacity: 1;
       transform: translateY(0);
+    }
+    
+    .result-placeholder {
+      text-align: center;
+      color: #999;
+      font-size: 1.1rem;
+      padding: 40px 20px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     }
     
     .result-item {
@@ -234,10 +261,48 @@
       gap: 20px;
     }
     
-    @media (max-width: 600px) {
-      .container {
-        padding: 20px;
+    .result-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .save-indicator {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #4caf50;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+    }
+    
+    .save-indicator.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
         margin: 10px;
+        min-height: auto;
+      }
+      
+      .input-section {
+        border-right: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      
+      .result-section {
+        padding: 20px;
       }
       
       h2 {
@@ -252,91 +317,167 @@
         grid-template-columns: 1fr;
       }
     }
+    
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      
+      .main-container {
+        margin: 0;
+      }
+      
+      .input-section, .result-section {
+        padding: 15px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📈 Commodity Paper Trading Calculator</h2>
+  <div class="main-container">
+    <div class="save-indicator" id="saveIndicator">✓ Values Saved</div>
     
-    <div class="form-group">
-      <label for="increment">Increment Value (₹):</label>
-      <div style="position: relative;">
-        <span class="currency-symbol">₹</span>
-        <input type="number" id="increment" class="currency-input" value="10" step="0.01">
-      </div>
-    </div>
-    
-    <div class="form-group">
-      <label>Type of Trade:</label>
-      <div class="trade-type-container">
-        <div class="trade-option active" onclick="selectTradeType('Buy')">
-          <strong>📈 BUY</strong>
-          <div style="font-size: 0.8rem; margin-top: 5px;">Long Position</div>
-        </div>
-        <div class="trade-option" onclick="selectTradeType('Sell')">
-          <strong>📉 SELL</strong>
-          <div style="font-size: 0.8rem; margin-top: 5px;">Short Position</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="input-grid">
+    <div class="input-section">
+      <h2>📈 Commodity Paper Trading Calculator</h2>
+      
       <div class="form-group">
-        <label for="profit">Expected Profit (₹):</label>
+        <label for="increment">Increment Value (₹):</label>
         <div style="position: relative;">
           <span class="currency-symbol">₹</span>
-          <input type="number" id="profit" class="currency-input" value="500">
+          <input type="number" id="increment" class="currency-input" value="10" step="0.01">
         </div>
       </div>
       
       <div class="form-group">
-        <label for="brokerage">Brokerage per Trade (₹):</label>
-        <div style="position: relative;">
-          <span class="currency-symbol">₹</span>
-          <input type="number" id="brokerage" class="currency-input" value="67.84" step="0.01">
-        </div>
-      </div>
-    </div>
-    
-    <div class="input-grid">
-      <div class="form-group">
-        <label for="buy">Buy Price (₹):</label>
-        <div style="position: relative;">
-          <span class="currency-symbol">₹</span>
-          <input type="number" id="buy" class="currency-input" value="97173" step="0.01">
+        <label>Type of Trade:</label>
+        <div class="trade-type-container">
+          <div class="trade-option active" onclick="selectTradeType('Buy')">
+            <strong>📈 BUY</strong>
+            <div style="font-size: 0.8rem; margin-top: 5px;">Long Position</div>
+          </div>
+          <div class="trade-option" onclick="selectTradeType('Sell')">
+            <strong>📉 SELL</strong>
+            <div style="font-size: 0.8rem; margin-top: 5px;">Short Position</div>
+          </div>
         </div>
       </div>
       
-      <div class="form-group">
-        <label for="sell">Sell Price (₹):</label>
-        <div style="position: relative;">
-          <span class="currency-symbol">₹</span>
-          <input type="number" id="sell" class="currency-input" value="97259" step="0.01">
+      <div class="input-grid">
+        <div class="form-group">
+          <label for="profit">Expected Profit (₹):</label>
+          <div style="position: relative;">
+            <span class="currency-symbol">₹</span>
+            <input type="number" id="profit" class="currency-input" value="500">
+          </div>
         </div>
+        
+        <div class="form-group">
+          <label for="brokerage">Brokerage per Trade (₹):</label>
+          <div style="position: relative;">
+            <span class="currency-symbol">₹</span>
+            <input type="number" id="brokerage" class="currency-input" value="67.84" step="0.01">
+          </div>
+        </div>
+      </div>
+      
+      <div class="input-grid">
+        <div class="form-group">
+          <label for="buy">Buy Price (₹):</label>
+          <div style="position: relative;">
+            <span class="currency-symbol">₹</span>
+            <input type="number" id="buy" class="currency-input" value="97173" step="0.01">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="sell">Sell Price (₹):</label>
+          <div style="position: relative;">
+            <span class="currency-symbol">₹</span>
+            <input type="number" id="sell" class="currency-input" value="97259" step="0.01">
+          </div>
+        </div>
+      </div>
+      
+      <button class="calculate-btn" onclick="calculate()">
+        🔢 Calculate Trade Metrics
+      </button>
+      
+      <div class="quick-actions">
+        <button class="quick-btn" onclick="clearAll()">🗑️ Clear All</button>
+        <button class="quick-btn" onclick="swapPrices()">🔄 Swap Prices</button>
+        <button class="quick-btn" onclick="setDefaults()">⚙️ Reset Defaults</button>
+      </div>
+      
+      <div class="info-box">
+        <strong>📝 Note:</strong> This calculator uses your specified brokerage per trade. 
+        Net profit calculation includes round-trip brokerage costs (entry + exit). 
+        Values are automatically saved and restored when you reload the page.
       </div>
     </div>
     
-    <button class="calculate-btn" onclick="calculate()">
-      🔢 Calculate Trade Metrics
-    </button>
-    
-    <div class="quick-actions">
-      <button class="quick-btn" onclick="clearAll()">🗑️ Clear All</button>
-      <button class="quick-btn" onclick="swapPrices()">🔄 Swap Prices</button>
-      <button class="quick-btn" onclick="setDefaults()">⚙️ Reset Defaults</button>
-    </div>
-    
-    <div class="result" id="result"></div>
-    
-    <div class="info-box">
-      <strong>📝 Note:</strong> This calculator uses your specified brokerage per trade. 
-      Net profit calculation includes round-trip brokerage costs (entry + exit). 
-      Adjust the brokerage field to match your broker's charges.
+    <div class="result-section">
+      <div class="result-title">📊 Trade Analysis</div>
+      <div class="result-placeholder" id="resultPlaceholder">
+        <div style="font-size: 3rem; margin-bottom: 20px;">📈</div>
+        <div>Enter your trade details and click calculate to see the analysis results here.</div>
+      </div>
+      <div class="result" id="result"></div>
     </div>
   </div>
 
   <script>
     let selectedTradeType = 'Buy';
+    
+    // Save values to localStorage
+    function saveValues() {
+      const values = {
+        increment: document.getElementById("increment").value,
+        profit: document.getElementById("profit").value,
+        buy: document.getElementById("buy").value,
+        sell: document.getElementById("sell").value,
+        brokerage: document.getElementById("brokerage").value,
+        tradeType: selectedTradeType
+      };
+      localStorage.setItem('commodityTradeValues', JSON.stringify(values));
+      showSaveIndicator();
+    }
+    
+    // Load values from localStorage
+    function loadValues() {
+      const savedValues = localStorage.getItem('commodityTradeValues');
+      if (savedValues) {
+        const values = JSON.parse(savedValues);
+        document.getElementById("increment").value = values.increment || "10";
+        document.getElementById("profit").value = values.profit || "500";
+        document.getElementById("buy").value = values.buy || "97173";
+        document.getElementById("sell").value = values.sell || "97259";
+        document.getElementById("brokerage").value = values.brokerage || "67.84";
+        selectedTradeType = values.tradeType || 'Buy';
+        
+        // Update trade type UI
+        document.querySelectorAll('.trade-option').forEach(option => {
+          option.classList.remove('active');
+        });
+        document.querySelector(`[onclick*="${selectedTradeType}"]`).classList.add('active');
+      }
+    }
+    
+    // Show save indicator
+    function showSaveIndicator() {
+      const indicator = document.getElementById('saveIndicator');
+      indicator.classList.add('show');
+      setTimeout(() => {
+        indicator.classList.remove('show');
+      }, 2000);
+    }
+    
+    // Add event listeners to save on input change
+    function addSaveListeners() {
+      const inputs = ['increment', 'profit', 'buy', 'sell', 'brokerage'];
+      inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', saveValues);
+      });
+    }
     
     function selectTradeType(type) {
       selectedTradeType = type;
@@ -344,6 +485,7 @@
         option.classList.remove('active');
       });
       event.target.closest('.trade-option').classList.add('active');
+      saveValues();
     }
     
     function calculate() {
@@ -418,6 +560,7 @@
         </div>
       `;
       
+      document.getElementById("resultPlaceholder").style.display = 'none';
       document.getElementById("result").classList.add('show');
     }
     
@@ -428,6 +571,8 @@
       document.getElementById("sell").value = '';
       document.getElementById("brokerage").value = '';
       document.getElementById("result").classList.remove('show');
+      document.getElementById("resultPlaceholder").style.display = 'block';
+      localStorage.removeItem('commodityTradeValues');
     }
     
     function swapPrices() {
@@ -435,6 +580,7 @@
       const sellPrice = document.getElementById("sell").value;
       document.getElementById("buy").value = sellPrice;
       document.getElementById("sell").value = buyPrice;
+      saveValues();
     }
     
     function setDefaults() {
@@ -444,7 +590,20 @@
       document.getElementById("sell").value = '97259';
       document.getElementById("brokerage").value = '67.84';
       document.getElementById("result").classList.remove('show');
+      document.getElementById("resultPlaceholder").style.display = 'block';
+      selectedTradeType = 'Buy';
+      document.querySelectorAll('.trade-option').forEach(option => {
+        option.classList.remove('active');
+      });
+      document.querySelector(`[onclick*="Buy"]`).classList.add('active');
+      saveValues();
     }
+    
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+      loadValues();
+      addSaveListeners();
+    });
     
     // Add keyboard support
     document.addEventListener('keydown', function(e) {
