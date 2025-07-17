@@ -471,12 +471,83 @@
       }, 2000);
     }
     
-    // Add event listeners to save on input change
+    // Add event listeners to save on input change and live calculate
     function addSaveListeners() {
       const inputs = ['increment', 'profit', 'buy', 'sell', 'brokerage'];
       inputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', saveValues);
+        const input = document.getElementById(id);
+        input.addEventListener('input', function() {
+          saveValues();
+          // Live calculate when buy or sell price changes
+          if (id === 'buy' || id === 'sell') {
+            liveCalculate();
+          }
+        });
       });
+    }
+    
+    // Live calculation function
+    function liveCalculate() {
+      const increment = parseFloat(document.getElementById("increment").value);
+      const expectedProfit = parseFloat(document.getElementById("profit").value);
+      const buy = parseFloat(document.getElementById("buy").value);
+      const sell = parseFloat(document.getElementById("sell").value);
+      const brokerage = parseFloat(document.getElementById("brokerage").value);
+      
+      // Only calculate if buy and sell prices are valid
+      if (!isNaN(buy) && !isNaN(sell) && !isNaN(increment) && !isNaN(brokerage) && increment > 0) {
+        const targetPoints = expectedProfit / increment;
+        const presentPoints = selectedTradeType === "Buy" ? (sell - buy) : (buy - sell);
+        const targetValue = selectedTradeType === "Buy" ? (buy + targetPoints) : (sell - targetPoints);
+        const profitLoss = presentPoints * increment;
+        const totalBrokerage = brokerage * 2; // Round trip
+        const netProfit = profitLoss - totalBrokerage;
+        
+        const profitClass = netProfit >= 0 ? 'profit-positive' : 'profit-negative';
+        const profitIcon = netProfit >= 0 ? '📈' : '📉';
+        
+        // Calculate breakeven points
+        const breakEvenPoints = totalBrokerage / increment;
+        const breakEvenValue = selectedTradeType === "Buy" ? (buy + breakEvenPoints) : (sell - breakEvenPoints);
+        
+        document.getElementById("result").innerHTML = `
+          <div class="result-item">
+            <span class="result-label">Target Points:</span>
+            <span class="result-value">₹${targetPoints.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Present Points:</span>
+            <span class="result-value">₹${presentPoints.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Target Value:</span>
+            <span class="result-value">₹${targetValue.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Breakeven Points:</span>
+            <span class="result-value">₹${breakEvenPoints.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Breakeven Value:</span>
+            <span class="result-value">₹${breakEvenValue.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Gross P&L:</span>
+            <span class="result-value">₹${profitLoss.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Total Brokerage:</span>
+            <span class="result-value">₹${totalBrokerage.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">${profitIcon} Net Profit:</span>
+            <span class="result-value ${profitClass}">₹${netProfit.toFixed(2)}</span>
+          </div>
+        `;
+        
+        document.getElementById("resultPlaceholder").style.display = 'none';
+        document.getElementById("result").classList.add('show');
+      }
     }
     
     function selectTradeType(type) {
@@ -486,6 +557,8 @@
       });
       event.target.closest('.trade-option').classList.add('active');
       saveValues();
+      // Recalculate when trade type changes
+      liveCalculate();
     }
     
     function calculate() {
@@ -581,6 +654,7 @@
       document.getElementById("buy").value = sellPrice;
       document.getElementById("sell").value = buyPrice;
       saveValues();
+      liveCalculate();
     }
     
     function setDefaults() {
@@ -597,12 +671,15 @@
       });
       document.querySelector(`[onclick*="Buy"]`).classList.add('active');
       saveValues();
+      liveCalculate();
     }
     
     // Initialize the application
     document.addEventListener('DOMContentLoaded', function() {
       loadValues();
       addSaveListeners();
+      // Perform initial calculation if values are loaded
+      setTimeout(liveCalculate, 100);
     });
     
     // Add keyboard support
