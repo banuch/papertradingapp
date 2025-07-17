@@ -364,19 +364,24 @@
       
       <div class="input-grid">
         <div class="form-group">
+          <label for="lots">Number of Lots:</label>
+          <input type="number" id="lots" value="1" min="1" step="1">
+        </div>
+        
+        <div class="form-group">
           <label for="profit">Expected Profit (₹):</label>
           <div style="position: relative;">
             <span class="currency-symbol">₹</span>
             <input type="number" id="profit" class="currency-input" value="500">
           </div>
         </div>
-        
-        <div class="form-group">
-          <label for="brokerage">Brokerage per Trade (₹):</label>
-          <div style="position: relative;">
-            <span class="currency-symbol">₹</span>
-            <input type="number" id="brokerage" class="currency-input" value="67.84" step="0.01">
-          </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="brokerage">Brokerage per Trade (₹):</label>
+        <div style="position: relative;">
+          <span class="currency-symbol">₹</span>
+          <input type="number" id="brokerage" class="currency-input" value="67.84" step="0.01">
         </div>
       </div>
       
@@ -432,6 +437,7 @@
     function saveValues() {
       const values = {
         increment: document.getElementById("increment").value,
+        lots: document.getElementById("lots").value,
         profit: document.getElementById("profit").value,
         buy: document.getElementById("buy").value,
         sell: document.getElementById("sell").value,
@@ -448,6 +454,7 @@
       if (savedValues) {
         const values = JSON.parse(savedValues);
         document.getElementById("increment").value = values.increment || "10";
+        document.getElementById("lots").value = values.lots || "1";
         document.getElementById("profit").value = values.profit || "500";
         document.getElementById("buy").value = values.buy || "97173";
         document.getElementById("sell").value = values.sell || "97259";
@@ -473,13 +480,13 @@
     
     // Add event listeners to save on input change and live calculate
     function addSaveListeners() {
-      const inputs = ['increment', 'profit', 'buy', 'sell', 'brokerage'];
+      const inputs = ['increment', 'lots', 'profit', 'buy', 'sell', 'brokerage'];
       inputs.forEach(id => {
         const input = document.getElementById(id);
         input.addEventListener('input', function() {
           saveValues();
-          // Live calculate when buy or sell price changes
-          if (id === 'buy' || id === 'sell') {
+          // Live calculate when buy, sell price, or lots change
+          if (id === 'buy' || id === 'sell' || id === 'lots') {
             liveCalculate();
           }
         });
@@ -489,28 +496,34 @@
     // Live calculation function
     function liveCalculate() {
       const increment = parseFloat(document.getElementById("increment").value);
+      const lots = parseInt(document.getElementById("lots").value);
       const expectedProfit = parseFloat(document.getElementById("profit").value);
       const buy = parseFloat(document.getElementById("buy").value);
       const sell = parseFloat(document.getElementById("sell").value);
       const brokerage = parseFloat(document.getElementById("brokerage").value);
       
-      // Only calculate if buy and sell prices are valid
-      if (!isNaN(buy) && !isNaN(sell) && !isNaN(increment) && !isNaN(brokerage) && increment > 0) {
+      // Only calculate if buy, sell prices, and lots are valid
+      if (!isNaN(buy) && !isNaN(sell) && !isNaN(increment) && !isNaN(brokerage) && !isNaN(lots) && increment > 0 && lots > 0) {
         const targetPoints = expectedProfit / increment;
         const presentPoints = selectedTradeType === "Buy" ? (sell - buy) : (buy - sell);
         const targetValue = selectedTradeType === "Buy" ? (buy + targetPoints) : (sell - targetPoints);
-        const profitLoss = presentPoints * increment;
-        const totalBrokerage = brokerage * 2; // Round trip
-        const netProfit = profitLoss - totalBrokerage;
+        const profitLossPerLot = presentPoints * increment;
+        const totalProfitLoss = profitLossPerLot * lots;
+        const totalBrokerage = brokerage * 2 * lots; // Round trip for all lots
+        const netProfit = totalProfitLoss - totalBrokerage;
         
         const profitClass = netProfit >= 0 ? 'profit-positive' : 'profit-negative';
         const profitIcon = netProfit >= 0 ? '📈' : '📉';
         
         // Calculate breakeven points
-        const breakEvenPoints = totalBrokerage / increment;
+        const breakEvenPoints = (brokerage * 2) / increment; // Breakeven per lot
         const breakEvenValue = selectedTradeType === "Buy" ? (buy + breakEvenPoints) : (sell - breakEvenPoints);
         
         document.getElementById("result").innerHTML = `
+          <div class="result-item">
+            <span class="result-label">Number of Lots:</span>
+            <span class="result-value">${lots}</span>
+          </div>
           <div class="result-item">
             <span class="result-label">Target Points:</span>
             <span class="result-value">₹${targetPoints.toFixed(2)}</span>
@@ -524,7 +537,7 @@
             <span class="result-value">₹${targetValue.toFixed(2)}</span>
           </div>
           <div class="result-item">
-            <span class="result-label">Breakeven Points:</span>
+            <span class="result-label">Breakeven Points (per lot):</span>
             <span class="result-value">₹${breakEvenPoints.toFixed(2)}</span>
           </div>
           <div class="result-item">
@@ -532,8 +545,12 @@
             <span class="result-value">₹${breakEvenValue.toFixed(2)}</span>
           </div>
           <div class="result-item">
-            <span class="result-label">Gross P&L:</span>
-            <span class="result-value">₹${profitLoss.toFixed(2)}</span>
+            <span class="result-label">P&L per Lot:</span>
+            <span class="result-value">₹${profitLossPerLot.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Total Gross P&L:</span>
+            <span class="result-value">₹${totalProfitLoss.toFixed(2)}</span>
           </div>
           <div class="result-item">
             <span class="result-label">Total Brokerage:</span>
@@ -563,19 +580,25 @@
     
     function calculate() {
       const increment = parseFloat(document.getElementById("increment").value);
+      const lots = parseInt(document.getElementById("lots").value);
       const expectedProfit = parseFloat(document.getElementById("profit").value);
       const buy = parseFloat(document.getElementById("buy").value);
       const sell = parseFloat(document.getElementById("sell").value);
       const brokerage = parseFloat(document.getElementById("brokerage").value);
       
       // Validation
-      if (isNaN(increment) || isNaN(expectedProfit) || isNaN(buy) || isNaN(sell) || isNaN(brokerage)) {
+      if (isNaN(increment) || isNaN(lots) || isNaN(expectedProfit) || isNaN(buy) || isNaN(sell) || isNaN(brokerage)) {
         alert('Please enter valid numbers for all fields.');
         return;
       }
       
       if (increment <= 0) {
         alert('Increment value must be greater than 0.');
+        return;
+      }
+      
+      if (lots <= 0) {
+        alert('Number of lots must be greater than 0.');
         return;
       }
       
@@ -587,18 +610,23 @@
       const targetPoints = expectedProfit / increment;
       const presentPoints = selectedTradeType === "Buy" ? (sell - buy) : (buy - sell);
       const targetValue = selectedTradeType === "Buy" ? (buy + targetPoints) : (sell - targetPoints);
-      const profitLoss = presentPoints * increment;
-      const totalBrokerage = brokerage * 2; // Round trip
-      const netProfit = profitLoss - totalBrokerage;
+      const profitLossPerLot = presentPoints * increment;
+      const totalProfitLoss = profitLossPerLot * lots;
+      const totalBrokerage = brokerage * 2 * lots; // Round trip for all lots
+      const netProfit = totalProfitLoss - totalBrokerage;
       
       const profitClass = netProfit >= 0 ? 'profit-positive' : 'profit-negative';
       const profitIcon = netProfit >= 0 ? '📈' : '📉';
       
       // Calculate breakeven points
-      const breakEvenPoints = totalBrokerage / increment;
+      const breakEvenPoints = (brokerage * 2) / increment; // Breakeven per lot
       const breakEvenValue = selectedTradeType === "Buy" ? (buy + breakEvenPoints) : (sell - breakEvenPoints);
       
       document.getElementById("result").innerHTML = `
+        <div class="result-item">
+          <span class="result-label">Number of Lots:</span>
+          <span class="result-value">${lots}</span>
+        </div>
         <div class="result-item">
           <span class="result-label">Target Points:</span>
           <span class="result-value">₹${targetPoints.toFixed(2)}</span>
@@ -612,7 +640,7 @@
           <span class="result-value">₹${targetValue.toFixed(2)}</span>
         </div>
         <div class="result-item">
-          <span class="result-label">Breakeven Points:</span>
+          <span class="result-label">Breakeven Points (per lot):</span>
           <span class="result-value">₹${breakEvenPoints.toFixed(2)}</span>
         </div>
         <div class="result-item">
@@ -620,8 +648,12 @@
           <span class="result-value">₹${breakEvenValue.toFixed(2)}</span>
         </div>
         <div class="result-item">
-          <span class="result-label">Gross P&L:</span>
-          <span class="result-value">₹${profitLoss.toFixed(2)}</span>
+          <span class="result-label">P&L per Lot:</span>
+          <span class="result-value">₹${profitLossPerLot.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Total Gross P&L:</span>
+          <span class="result-value">₹${totalProfitLoss.toFixed(2)}</span>
         </div>
         <div class="result-item">
           <span class="result-label">Total Brokerage:</span>
@@ -639,6 +671,7 @@
     
     function clearAll() {
       document.getElementById("increment").value = '';
+      document.getElementById("lots").value = '';
       document.getElementById("profit").value = '';
       document.getElementById("buy").value = '';
       document.getElementById("sell").value = '';
