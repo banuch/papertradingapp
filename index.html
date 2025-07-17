@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commodity Paper Trading Calculator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      padding: 40px;
+      max-width: 650px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+    
+    h2 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2rem;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 0.95rem;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: white;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .currency-symbol {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+      font-weight: 600;
+      pointer-events: none;
+    }
+    
+    .currency-input {
+      padding-left: 32px;
+    }
+    
+    .trade-type-container {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .trade-option {
+      flex: 1;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      background: white;
+    }
+    
+    .trade-option.active {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    
+    .trade-option:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .calculate-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+    }
+    
+    .calculate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .result {
+      margin-top: 30px;
+      padding: 25px;
+      background: linear-gradient(135deg, #e8f5e8, #f0f8ff);
+      border-radius: 15px;
+      border-left: 5px solid #4caf50;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+    
+    .result.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .result-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #333;
+    }
+    
+    .result-label {
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .result-value {
+      font-weight: 600;
+      color: #333;
+      font-size: 1.05rem;
+    }
+    
+    .profit-positive {
+      color: #4caf50;
+    }
+    
+    .profit-negative {
+      color: #f44336;
+    }
+    
+    .info-box {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .quick-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .quick-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .quick-btn:hover {
+      background: #e9ecef;
+      transform: translateY(-1px);
+    }
+    
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+        margin: 10px;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+      
+      .trade-type-container {
+        flex-direction: column;
+      }
+      
+      .input-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📈 Commodity Paper Trading Calculator</h2>
+    
+    <div class="form-group">
+      <label for="increment">Increment Value (₹):</label>
+      <div style="position: relative;">
+        <span class="currency-symbol">₹</span>
+        <input type="number" id="increment" class="currency-input" value="10" step="0.01">
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label>Type of Trade:</label>
+      <div class="trade-type-container">
+        <div class="trade-option active" onclick="selectTradeType('Buy')">
+          <strong>📈 BUY</strong>
+          <div style="font-size: 0.8rem; margin-top: 5px;">Long Position</div>
+        </div>
+        <div class="trade-option" onclick="selectTradeType('Sell')">
+          <strong>📉 SELL</strong>
+          <div style="font-size: 0.8rem; margin-top: 5px;">Short Position</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="input-grid">
+      <div class="form-group">
+        <label for="profit">Expected Profit (₹):</label>
+        <div style="position: relative;">
+          <span class="currency-symbol">₹</span>
+          <input type="number" id="profit" class="currency-input" value="500">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="brokerage">Brokerage per Trade (₹):</label>
+        <div style="position: relative;">
+          <span class="currency-symbol">₹</span>
+          <input type="number" id="brokerage" class="currency-input" value="67.84" step="0.01">
+        </div>
+      </div>
+    </div>
+    
+    <div class="input-grid">
+      <div class="form-group">
+        <label for="buy">Buy Price (₹):</label>
+        <div style="position: relative;">
+          <span class="currency-symbol">₹</span>
+          <input type="number" id="buy" class="currency-input" value="97173" step="0.01">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="sell">Sell Price (₹):</label>
+        <div style="position: relative;">
+          <span class="currency-symbol">₹</span>
+          <input type="number" id="sell" class="currency-input" value="97259" step="0.01">
+        </div>
+      </div>
+    </div>
+    
+    <button class="calculate-btn" onclick="calculate()">
+      🔢 Calculate Trade Metrics
+    </button>
+    
+    <div class="quick-actions">
+      <button class="quick-btn" onclick="clearAll()">🗑️ Clear All</button>
+      <button class="quick-btn" onclick="swapPrices()">🔄 Swap Prices</button>
+      <button class="quick-btn" onclick="setDefaults()">⚙️ Reset Defaults</button>
+    </div>
+    
+    <div class="result" id="result"></div>
+    
+    <div class="info-box">
+      <strong>📝 Note:</strong> This calculator uses your specified brokerage per trade. 
+      Net profit calculation includes round-trip brokerage costs (entry + exit). 
+      Adjust the brokerage field to match your broker's charges.
+    </div>
+  </div>
+
+  <script>
+    let selectedTradeType = 'Buy';
+    
+    function selectTradeType(type) {
+      selectedTradeType = type;
+      document.querySelectorAll('.trade-option').forEach(option => {
+        option.classList.remove('active');
+      });
+      event.target.closest('.trade-option').classList.add('active');
+    }
+    
+    function calculate() {
+      const increment = parseFloat(document.getElementById("increment").value);
+      const expectedProfit = parseFloat(document.getElementById("profit").value);
+      const buy = parseFloat(document.getElementById("buy").value);
+      const sell = parseFloat(document.getElementById("sell").value);
+      const brokerage = parseFloat(document.getElementById("brokerage").value);
+      
+      // Validation
+      if (isNaN(increment) || isNaN(expectedProfit) || isNaN(buy) || isNaN(sell) || isNaN(brokerage)) {
+        alert('Please enter valid numbers for all fields.');
+        return;
+      }
+      
+      if (increment <= 0) {
+        alert('Increment value must be greater than 0.');
+        return;
+      }
+      
+      if (brokerage < 0) {
+        alert('Brokerage cannot be negative.');
+        return;
+      }
+      
+      const targetPoints = expectedProfit / increment;
+      const presentPoints = selectedTradeType === "Buy" ? (sell - buy) : (buy - sell);
+      const targetValue = selectedTradeType === "Buy" ? (buy + targetPoints) : (sell - targetPoints);
+      const profitLoss = presentPoints * increment;
+      const totalBrokerage = brokerage * 2; // Round trip
+      const netProfit = profitLoss - totalBrokerage;
+      
+      const profitClass = netProfit >= 0 ? 'profit-positive' : 'profit-negative';
+      const profitIcon = netProfit >= 0 ? '📈' : '📉';
+      
+      // Calculate breakeven points
+      const breakEvenPoints = totalBrokerage / increment;
+      const breakEvenValue = selectedTradeType === "Buy" ? (buy + breakEvenPoints) : (sell - breakEvenPoints);
+      
+      document.getElementById("result").innerHTML = `
+        <div class="result-item">
+          <span class="result-label">Target Points:</span>
+          <span class="result-value">₹${targetPoints.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Present Points:</span>
+          <span class="result-value">₹${presentPoints.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Target Value:</span>
+          <span class="result-value">₹${targetValue.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Breakeven Points:</span>
+          <span class="result-value">₹${breakEvenPoints.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Breakeven Value:</span>
+          <span class="result-value">₹${breakEvenValue.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Gross P&L:</span>
+          <span class="result-value">₹${profitLoss.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Total Brokerage:</span>
+          <span class="result-value">₹${totalBrokerage.toFixed(2)}</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">${profitIcon} Net Profit:</span>
+          <span class="result-value ${profitClass}">₹${netProfit.toFixed(2)}</span>
+        </div>
+      `;
+      
+      document.getElementById("result").classList.add('show');
+    }
+    
+    function clearAll() {
+      document.getElementById("increment").value = '';
+      document.getElementById("profit").value = '';
+      document.getElementById("buy").value = '';
+      document.getElementById("sell").value = '';
+      document.getElementById("brokerage").value = '';
+      document.getElementById("result").classList.remove('show');
+    }
+    
+    function swapPrices() {
+      const buyPrice = document.getElementById("buy").value;
+      const sellPrice = document.getElementById("sell").value;
+      document.getElementById("buy").value = sellPrice;
+      document.getElementById("sell").value = buyPrice;
+    }
+    
+    function setDefaults() {
+      document.getElementById("increment").value = '10';
+      document.getElementById("profit").value = '500';
+      document.getElementById("buy").value = '97173';
+      document.getElementById("sell").value = '97259';
+      document.getElementById("brokerage").value = '67.84';
+      document.getElementById("result").classList.remove('show');
+    }
+    
+    // Add keyboard support
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        calculate();
+      }
+    });
+    
+    // Add input formatting
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+      input.addEventListener('input', function(e) {
+        if (this.id === 'brokerage' && this.value < 0) {
+          this.value = 0;
+        } else if (this.id !== 'brokerage' && this.value < 0) {
+          this.value = 0;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
