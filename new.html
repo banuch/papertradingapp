@@ -914,4 +914,454 @@
             
             if (!dataLoaded) {
                 const currentDate = new Date().toLocaleString();
-                document.getElementByI
+                document.getElementById('initialDate').textContent = currentDate;
+            } else {
+                updateAllDisplays();
+                
+                if (transactionHistory.length > 0) {
+                    document.getElementById('initialDate').textContent = transactionHistory[0]?.date || new Date().toLocaleString();
+                } else {
+                    document.getElementById('initialDate').textContent = new Date().toLocaleString();
+                }
+            }
+            
+            updateBalanceDisplay();
+        }
+
+        function addMoney() {
+            const amount = parseFloat(document.getElementById('balanceAmount').value);
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount!');
+                return;
+            }
+
+            tradeBalance += amount;
+            transactionHistory.push({
+                type: 'Deposit',
+                amount: amount,
+                date: new Date().toLocaleString(),
+                balanceAfter: tradeBalance
+            });
+
+            updateBalanceDisplay();
+            updateTransactionHistory();
+            saveToLocalStorage();
+            document.getElementById('balanceAmount').value = '';
+            alert(`₹${amount.toFixed(2)} added successfully!`);
+        }
+
+        function withdrawMoney() {
+            const amount = parseFloat(document.getElementById('balanceAmount').value);
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount!');
+                return;
+            }
+
+            const usedMargin = calculateUsedMargin();
+            const availableForWithdrawal = tradeBalance - usedMargin;
+
+            if (amount > availableForWithdrawal) {
+                alert(`Insufficient funds! Available: ₹${availableForWithdrawal.toFixed(2)}`);
+                return;
+            }
+
+            tradeBalance -= amount;
+            transactionHistory.push({
+                type: 'Withdrawal',
+                amount: -amount,
+                date: new Date().toLocaleString(),
+                balanceAfter: tradeBalance
+            });
+
+            updateBalanceDisplay();
+            updateTransactionHistory();
+            saveToLocalStorage();
+            document.getElementById('balanceAmount').value = '';
+            alert(`₹${amount.toFixed(2)} withdrawn successfully!`);
+        }
+
+        function calculateUsedMargin() {
+            return openPositions.reduce((sum, trade) => sum + trade.investment, 0);
+        }
+
+        function updateBalanceDisplay() {
+            const usedMargin = calculateUsedMargin();
+            const totalUnrealizedPL = openPositions.reduce((sum, trade) => sum + trade.unrealizedPL, 0);
+            const totalRealizedPL = closedTrades.reduce((sum, trade) => sum + trade.realizedPL, 0);
+            const freeMargin = tradeBalance - usedMargin + totalUnrealizedPL;
+            const totalPL = totalRealizedPL + totalUnrealizedPL;
+
+            document.getElementById('tradeBalance').textContent = `₹${tradeBalance.toFixed(0)}`;
+            document.getElementById('availableBalance').textContent = `₹${tradeBalance.toFixed(0)}`;
+            document.getElementById('usedMargin').textContent = `₹${usedMargin.toFixed(0)}`;
+            document.getElementById('freeMargin').textContent = `₹${freeMargin.toFixed(0)}`;
+            document.getElementById('totalPL').textContent = `₹${totalPL.toFixed(0)}`;
+        }
+
+        function updateTransactionHistory() {
+            const tbody = document.getElementById('transactionHistory');
+            const initialRow = `
+                <tr>
+                    <td>Initial Deposit</td>
+                    <td class="profit-positive">₹100,000</td>
+                    <td>${document.getElementById('initialDate').textContent}</td>
+                    <td>₹100,000</td>
+                </tr>
+            `;
+            
+            const transactionRows = transactionHistory.map(transaction => `
+                <tr>
+                    <td>${transaction.type}</td>
+                    <td class="${transaction.amount >= 0 ? 'profit-positive' : 'profit-negative'}">
+                        ₹${Math.abs(transaction.amount).toFixed(0)}
+                    </td>
+                    <td>${transaction.date}</td>
+                    <td>₹${transaction.balanceAfter.toFixed(0)}</td>
+                </tr>
+            `).join('');
+
+            tbody.innerHTML = initialRow + transactionRows;
+            
+            const savedData = localStorage.getItem('commodityTradingData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                document.getElementById('lastSaved').textContent = data.lastSaved ? 
+                    new Date(data.lastSaved).toLocaleString() : 'Unknown';
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            if (tabName === 'positions') {
+                updatePositionsSummary();
+            } else if (tabName === 'closed') {
+                updateClosedTradesSummary();
+            } else if (tabName === 'balance') {
+                updateBalanceDisplay();
+            }
+        }
+
+        function calculateTrade() {
+            const contractValue = parseFloat(document.getElementById('contractValue').value) || 0;
+            const contractPrice = parseFloat(document.getElementById('contractPrice').value) || 0;
+            const charges = parseFloat(document.getElementById('charges').value) || 0;
+            const ticketValue = parseFloat(document.getElementById('ticketValue').value) || 0;
+            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
+
+            if (contractValue <= 0 || contractPrice <= 0 || ticketValue <= 0) {
+                alert('Please enter valid positive values for all required fields.');
+                return;
+            }
+
+            const baseAmount = contractPrice + charges;
+            const profitAmount = baseAmount * 0.02;
+            const lossAmount = baseAmount * 0.01;
+            const points = profitAmount / ticketValue;
+            
+            let targetPrice;
+            if (tradeType === 'buy') {
+                targetPrice = contractValue + points;
+            } else {
+                targetPrice = contractValue - points;
+            }
+
+            currentCalculation = {
+                profitAmount,
+                lossAmount,
+                points,
+                targetPrice,
+                baseAmount
+            };
+
+            document.getElementById('profitAmount').textContent = `₹${profitAmount.toFixed(0)}`;
+            document.getElementById('lossAmount').textContent = `₹${lossAmount.toFixed(0)}`;
+            document.getElementById('points').textContent = points.toFixed(2);
+            document.getElementById('targetPrice').textContent = `₹${targetPrice.toFixed(0)}`;
+
+            const resultsDiv = document.getElementById('calculation-results');
+            resultsDiv.classList.add('show');
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function addTrade() {
+            if (!currentCalculation) {
+                alert('Please calculate the trade first!');
+                return;
+            }
+
+            const contractValue = parseFloat(document.getElementById('contractValue').value);
+            const contractPrice = parseFloat(document.getElementById('contractPrice').value);
+            const charges = parseFloat(document.getElementById('charges').value);
+            const ticketValue = parseFloat(document.getElementById('ticketValue').value);
+            const commodity = document.getElementById('commodity').value || 'Unknown';
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+            const tradeType = document.querySelector('input[name="tradeType"]:checked').value;
+
+            const requiredMargin = currentCalculation.baseAmount * quantity;
+            const usedMargin = calculateUsedMargin();
+            const availableMargin = tradeBalance - usedMargin;
+
+            if (requiredMargin > availableMargin) {
+                alert(`Insufficient balance! Required: ₹${requiredMargin.toFixed(0)}, Available: ₹${availableMargin.toFixed(0)}`);
+                return;
+            }
+
+            const newTrade = {
+                id: tradeCounter++,
+                commodity,
+                type: tradeType.toUpperCase(),
+                quantity,
+                entryValue: contractValue,
+                currentValue: contractValue,
+                entryPrice: contractPrice,
+                charges,
+                ticketValue,
+                investment: requiredMargin,
+                targetPrice: currentCalculation.targetPrice,
+                profitTarget: currentCalculation.profitAmount,
+                stopLoss: currentCalculation.lossAmount,
+                points: currentCalculation.points,
+                openDate: new Date().toLocaleString(),
+                unrealizedPL: 0
+            };
+
+            openPositions.push(newTrade);
+            updatePositionsTable();
+            updatePositionsSummary();
+            updateBalanceDisplay();
+
+            transactionHistory.push({
+                type: `Trade Opened - ${commodity} ${tradeType.toUpperCase()}`,
+                amount: -requiredMargin,
+                date: new Date().toLocaleString(),
+                balanceAfter: tradeBalance
+            });
+            updateTransactionHistory();
+            saveToLocalStorage();
+
+            // Reset form to defaults
+            document.getElementById('contractValue').value = '98400';
+            document.getElementById('contractPrice').value = '78000';
+            document.getElementById('charges').value = '64';
+            document.getElementById('ticketValue').value = '10';
+            document.getElementById('commodity').value = 'Gold';
+            document.getElementById('quantity').value = '1';
+            document.getElementById('buy').checked = true;
+            document.getElementById('sell').checked = false;
+            
+            document.getElementById('calculation-results').classList.remove('show');
+            currentCalculation = null;
+
+            alert('Trade added successfully!');
+        }
+
+        function updatePositionsTable() {
+            const tbody = document.getElementById('positionsTableBody');
+            
+            if (openPositions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="no-positions">
+                            📭<br>No open positions
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = openPositions.map(trade => `
+                <tr>
+                    <td>${trade.commodity}</td>
+                    <td>${trade.type}</td>
+                    <td>${trade.quantity}</td>
+                    <td>₹${trade.entryValue.toFixed(0)}</td>
+                    <td>₹${trade.currentValue.toFixed(0)}</td>
+                    <td class="${trade.unrealizedPL >= 0 ? 'profit-positive' : 'profit-negative'}">
+                        ₹${trade.unrealizedPL.toFixed(0)}
+                    </td>
+                    <td>
+                        <button class="close-btn clickable" onclick="closeTrade(${trade.id})">
+                            Close
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateUnrealizedPL() {
+            const currentContractValue = parseFloat(document.getElementById('currentContractValue').value);
+            
+            if (!currentContractValue || currentContractValue <= 0) {
+                alert('Please enter a valid contract value!');
+                return;
+            }
+
+            openPositions.forEach(trade => {
+                trade.currentValue = currentContractValue;
+                
+                let valueDiff;
+                if (trade.type === 'BUY') {
+                    valueDiff = currentContractValue - trade.entryValue;
+                } else {
+                    valueDiff = trade.entryValue - currentContractValue;
+                }
+                
+                trade.unrealizedPL = valueDiff * trade.ticketValue * trade.quantity;
+            });
+
+            // Update current value display
+            document.getElementById('currentValueDisplay').textContent = `₹${currentContractValue.toFixed(0)}`;
+
+            updatePositionsTable();
+            updatePositionsSummary();
+            updateBalanceDisplay();
+            saveToLocalStorage();
+        }
+
+        function closeTrade(tradeId) {
+            const currentContractValue = parseFloat(document.getElementById('currentContractValue').value);
+            
+            if (!currentContractValue || currentContractValue <= 0) {
+                alert('Please enter current contract value first!');
+                return;
+            }
+
+            const tradeIndex = openPositions.findIndex(trade => trade.id === tradeId);
+            if (tradeIndex === -1) return;
+
+            const trade = openPositions[tradeIndex];
+            
+            let valueDiff;
+            if (trade.type === 'BUY') {
+                valueDiff = currentContractValue - trade.entryValue;
+            } else {
+                valueDiff = trade.entryValue - currentContractValue;
+            }
+            
+            const finalPL = valueDiff * trade.ticketValue * trade.quantity;
+
+            const closedTrade = {
+                ...trade,
+                exitValue: currentContractValue,
+                realizedPL: finalPL,
+                closeDate: new Date().toLocaleString()
+            };
+
+            closedTrades.push(closedTrade);
+            openPositions.splice(tradeIndex, 1);
+
+            tradeBalance += (trade.investment + finalPL);
+            transactionHistory.push({
+                type: `Trade Closed - ${trade.commodity} ${trade.type}`,
+                amount: trade.investment + finalPL,
+                date: new Date().toLocaleString(),
+                balanceAfter: tradeBalance
+            });
+
+            updatePositionsTable();
+            updatePositionsSummary();
+            updateClosedTradesTable();
+            updateClosedTradesSummary();
+            updateBalanceDisplay();
+            updateTransactionHistory();
+            saveToLocalStorage();
+
+            alert(`Trade closed! P&L: ₹${finalPL.toFixed(0)}`);
+        }
+
+        function updatePositionsSummary() {
+            document.getElementById('totalPositions').textContent = openPositions.length;
+            
+            const totalInvestment = openPositions.reduce((sum, trade) => sum + trade.investment, 0);
+            document.getElementById('totalInvestment').textContent = `₹${totalInvestment.toFixed(0)}`;
+            
+            const totalUnrealizedPL = openPositions.reduce((sum, trade) => sum + trade.unrealizedPL, 0);
+            document.getElementById('unrealizedPL').textContent = `₹${totalUnrealizedPL.toFixed(0)}`;
+        }
+
+        function updateClosedTradesTable() {
+            const tbody = document.getElementById('closedTradesTableBody');
+            
+            if (closedTrades.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="no-positions">
+                            📈<br>No closed trades
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = closedTrades.slice(-10).reverse().map(trade => `
+                <tr>
+                    <td>${trade.commodity}</td>
+                    <td>${trade.type}</td>
+                    <td>₹${trade.entryValue.toFixed(0)}</td>
+                    <td>₹${trade.exitValue.toFixed(0)}</td>
+                    <td class="${trade.realizedPL >= 0 ? 'profit-positive' : 'profit-negative'}">
+                        ₹${trade.realizedPL.toFixed(0)}
+                    </td>
+                    <td>${new Date(trade.closeDate).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateClosedTradesSummary() {
+            document.getElementById('totalClosed').textContent = closedTrades.length;
+            
+            const totalRealizedPL = closedTrades.reduce((sum, trade) => sum + trade.realizedPL, 0);
+            document.getElementById('realizedPL').textContent = `₹${totalRealizedPL.toFixed(0)}`;
+            
+            const winningTrades = closedTrades.filter(trade => trade.realizedPL > 0).length;
+            const winRate = closedTrades.length > 0 ? (winningTrades / closedTrades.length * 100) : 0;
+            document.getElementById('winRate').textContent = `${winRate.toFixed(0)}%`;
+
+            const avgPL = closedTrades.length > 0 ? totalRealizedPL / closedTrades.length : 0;
+            document.getElementById('avgPL').textContent = `₹${avgPL.toFixed(0)}`;
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAccount();
+            
+            // Radio button interactions
+            const radioGroups = document.querySelectorAll('.radio-group');
+            radioGroups.forEach(group => {
+                group.addEventListener('click', function() {
+                    const radio = this.querySelector('input[type="radio"]');
+                    radio.checked = true;
+                    
+                    radioGroups.forEach(g => g.style.background = 'white');
+                    this.style.background = '#f8f9ff';
+                });
+            });
+
+            // Touch and keyboard improvements
+            document.addEventListener('keydown', function(event) {
+                if (event.ctrlKey && event.key === 'Enter') {
+                    calculateTrade();
+                }
+            });
+
+            // Prevent zoom on input focus (iOS)
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    if (window.innerWidth < 768) {
+                        this.style.fontSize = '16px';
+                    }
+                });
+            });
+
+            // Auto-save periodically
+            setInterval(saveToLocalStorage, 30000); // Save every 30 seconds
+        });
+    </script>
+</body>
+</html>
